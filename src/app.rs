@@ -4,24 +4,16 @@ live_design! {
     import makepad_widgets::base::*;
     import makepad_widgets::theme_desktop_dark::*;
 
+    import crate::carrousel::Carrousel;
+
     App = {{App}} {
         ui: <Window> {
             window: {position: vec2(0, 0), inner_size: vec2(400, 800)},
 
             body = {
-                align: {x: 0.5, y: 0.5},
+                padding: {top: 100}
 
-                <RoundedView> {
-                    width: 200,
-                    height: 100,
-                    draw_bg: {color: #550}
-
-                    align: {x: 0.5, y: 0.5},
-
-                    <Label> {
-                        text: "Hello World"
-                    }
-                }
+                <Carrousel> {}
             }
         }
     }
@@ -38,6 +30,7 @@ pub struct App {
 impl LiveHook for App {
     fn before_live_design(cx: &mut Cx) {
         makepad_widgets::live_design(cx);
+        crate::carrousel::live_design(cx);
     }
 }
 
