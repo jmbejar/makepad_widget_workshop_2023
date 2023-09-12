@@ -5,30 +5,28 @@ live_design! {
     import makepad_widgets::theme_desktop_dark::*;
 
     Carrousel = {{Carrousel}} {
-        view: <View> {
-            flow: Down
-            <Image> {
-                width: 400
-                height: 266
-                source: dep("crate://self/resources/image1.png")
-            }
-            <Image> {
-                width: 400
-                height: 266
-                source: dep("crate://self/resources/image2.png")
-            }
-            <Image> {
-                width: 400
-                height: 266
-                source: dep("crate://self/resources/image3.png")
-            }
+        flow: Down
+        <Image> {
+            width: 400
+            height: 266
+            source: dep("crate://self/resources/image1.png")
+        }
+        <Image> {
+            width: 400
+            height: 266
+            source: dep("crate://self/resources/image2.png")
+        }
+        <Image> {
+            width: 400
+            height: 266
+            source: dep("crate://self/resources/image3.png")
         }
     }
 }
 
 #[derive(Live)]
 pub struct Carrousel {
-    #[live]
+    #[deref]
     view: View,
 }
 
