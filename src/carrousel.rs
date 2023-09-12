@@ -5,14 +5,21 @@ live_design! {
     import makepad_widgets::theme_desktop_dark::*;
 
     Carrousel = <View> {
-        width: 200,
-        height: 100,
-        draw_bg: {color: #550}
-
-        align: {x: 0.5, y: 0.5},
-
-        <Label> {
-            text: "Hello World"
+        flow: Down
+        <Image> {
+            width: 400
+            height: 266
+            source: dep("crate://self/resources/image1.png")
+        }
+        <Image> {
+            width: 400
+            height: 266
+            source: dep("crate://self/resources/image2.png")
+        }
+        <Image> {
+            width: 400
+            height: 266
+            source: dep("crate://self/resources/image3.png")
         }
     }
 }
