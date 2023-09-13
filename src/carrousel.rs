@@ -15,7 +15,9 @@ live_design! {
     }
 
     Carrousel = {{Carrousel}} {
-        flow: Down,
+        // flow: Down,
+        flow: Overlay,
+
         page1 = <ImageContainer> {
             image = {
                 source: dep("crate://self/resources/image1.png")
@@ -34,61 +36,67 @@ live_design! {
 
         animator: {
             page1 = {
-                default: restart,
+                default: show,
                 restart = {
                     from: {all: Snap}
-                    apply: {page1 = { image = { margin: {left: 800.0}}}}
+                    apply: {page1 = { image = { margin: {left: 400.0}}}}
                 }
                 show = {
                     redraw: true,
                     from: {all: Forward {duration: 0.5}}
                     apply: {page1 = { image = { margin: {left: 0.0}}}}
                 }
+                // Added a new animation to hide the page
+                hide = {
+                    redraw: true,
+                    from: {all: Forward {duration: 0.5}}
+                    apply: {page1 = { image = { margin: {left: -400.0}}}}
+                }
             }
 
             page2 = {
-                default: restart,
+                default: hide,
                 restart = {
                     from: {all: Snap}
-                    apply: {page2 = { image = { margin: {left: 800.0}}}}
+                    apply: {page2 = { image = { margin: {left: 400.0}}}}
                 }
                 show = {
                     redraw: true,
                     from: {all: Forward {duration: 0.5}}
                     apply: {page2 = { image = { margin: {left: 0.0}}}}
                 }
+                hide = {
+                    redraw: true,
+                    from: {all: Forward {duration: 0.5}}
+                    apply: {page2 = { image = { margin: {left: -400.0}}}}
+                }
             }
 
             page3 = {
-                default: restart,
+                default: hide,
                 restart = {
                     from: {all: Snap}
-                    apply: {page3 = { image = { margin: {left: 800.0}}}}
+                    apply: {page3 = { image = { margin: {left: 400.0}}}}
                 }
                 show = {
                     redraw: true,
                     from: {all: Forward {duration: 0.5}}
                     apply: {page3 = { image = { margin: {left: 0.0}}}}
                 }
+                hide = {
+                    redraw: true,
+                    from: {all: Forward {duration: 0.5}}
+                    apply: {page3 = { image = { margin: {left: -400.0}}}}
+                }
             }
         }
     }
-}
-
-#[derive(Live, LiveHook)]
-#[live_ignore]
-pub enum CarrouselPageOrder {
-    #[pick] Normal,
-    Reverse
 }
 
 #[derive(Live)]
 pub struct Carrousel {
     #[deref]
     view: View,
-
-    #[live]
-    page_order: CarrouselPageOrder,
 
     #[rust(0)]
     current_page: u8,
@@ -145,11 +153,7 @@ impl Widget for Carrousel {
             Hit::FingerUp(fe) => if fe.is_over {
                 // Do not fire a new animation if the carrousel is already animating
                 if self.can_animate(cx) {
-                    self.update_current_page();
-                    self.reset_frames_visibility();
-                    self.pages[self.current_page as usize].set_visible(true);
-                    self.play_restart_animation(cx);
-                    //self.redraw(cx);
+                    self.play_animation(cx);
                 }
             }
             _ => ()
@@ -173,14 +177,7 @@ impl Carrousel {
     }
 
     fn update_current_page(&mut self) {
-        match self.page_order {
-            CarrouselPageOrder::Normal => {
-                self.current_page = (self.current_page + 1) % self.pages.len() as u8;
-            }
-            CarrouselPageOrder::Reverse => {
-                self.current_page = (self.current_page + self.pages.len() as u8 - 1) % self.pages.len() as u8;
-            }
-        }
+        self.current_page = (self.current_page + 1) % self.pages.len() as u8;
     }
 
     fn can_animate(&self, cx: &mut Cx) -> bool {
@@ -189,12 +186,25 @@ impl Carrousel {
             !self.animator.is_track_animating(cx, id!(page3))
     }
 
-    fn play_restart_animation(&mut self, cx: &mut Cx) {
+    fn play_animation(&mut self, cx: &mut Cx) {
+        self.update_current_page();
+        self.reset_frames_visibility();
+
         match self.current_page {
             0 => self.animator_play(cx, id!(page1.restart)),
             1 => self.animator_play(cx, id!(page2.restart)),
             2 => self.animator_play(cx, id!(page3.restart)),
             _ => ()
         }
+        self.pages[self.current_page as usize].set_visible(true);
+
+        let prev_page = (self.current_page + self.pages.len() as u8 - 1) % self.pages.len() as u8;
+        match prev_page {
+            0 => self.animator_play(cx, id!(page1.hide)),
+            1 => self.animator_play(cx, id!(page2.hide)),
+            2 => self.animator_play(cx, id!(page3.hide)),
+            _ => ()
+        }
+        self.pages[prev_page as usize].set_visible(true);
     }
 }
