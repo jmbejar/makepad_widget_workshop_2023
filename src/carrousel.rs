@@ -21,6 +21,23 @@ live_design! {
         ]
 
         page_template: <ImageContainer> {}
+
+        carrousel_page_offset: 0.0
+
+        animator: {
+            carrousel = {
+                default: restart,
+                restart = {
+                    from: {all: Snap}
+                    apply: {carrousel_page_offset: 800.0}
+                }
+                show = {
+                    redraw: true,
+                    from: {all: Forward {duration: 0.5}}
+                    apply: {carrousel_page_offset: 0.0}
+                }
+            }
+        }
     }
 }
 
@@ -48,7 +65,13 @@ pub struct Carrousel {
     current_page: u8,
 
     #[rust]
-    pages: ComponentMap<LiveId,WidgetRef>
+    pages: ComponentMap<LiveId,WidgetRef>,
+
+    #[live]
+    carrousel_page_offset: f64,
+
+    #[animator]
+    animator: Animator,
 }
 
 impl LiveHook for Carrousel {
@@ -79,10 +102,24 @@ impl Widget for Carrousel {
         event: &Event,
         _dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
     ) {
+        // Make sure we redraw when the animation is happening
+        if self.animator_handle_event(cx, event).must_redraw() {
+            self.redraw(cx);
+        }
+
+        // Fire the "show" animation when the "restart" animation is done
+        if self.animator.animator_in_state(cx, id!(carrousel.restart)) {
+            self.animator_play(cx, id!(carrousel.show));
+        }
+
         match event.hits(cx, self.area) {
             Hit::FingerUp(fe) => if fe.is_over {
-                self.update_current_page();
-                self.redraw(cx);
+                // Do not fire a new animation if the carrousel is already animating
+                if !self.animator.is_track_animating(cx, id!(carrousel)) {
+                    self.update_current_page();
+                    self.animator_play(cx, id!(carrousel.restart));
+                    //self.redraw(cx);
+                }
             }
             _ => ()
         };
@@ -107,7 +144,11 @@ impl Carrousel {
             WidgetRef::new_from_ptr(cx, self.page_template)
         });
 
-        let _ = page.draw_walk_widget(cx, walk);
+        let _ = page.draw_walk_widget(
+            cx,
+            walk.with_margin_left(self.carrousel_page_offset)
+        );
+
         cx.end_turtle_with_area(&mut self.area);
     }
 
