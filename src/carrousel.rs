@@ -33,6 +33,19 @@ live_design! {
         }
 
         animator: {
+            page1 = {
+                default: restart,
+                restart = {
+                    from: {all: Snap}
+                    apply: {page1 = { image = { margin: {left: 800.0}}}}
+                }
+                show = {
+                    redraw: true,
+                    from: {all: Forward {duration: 0.5}}
+                    apply: {page1 = { image = { margin: {left: 0.0}}}}
+                }
+            }
+
             page2 = {
                 default: restart,
                 restart = {
@@ -43,6 +56,19 @@ live_design! {
                     redraw: true,
                     from: {all: Forward {duration: 0.5}}
                     apply: {page2 = { image = { margin: {left: 0.0}}}}
+                }
+            }
+
+            page3 = {
+                default: restart,
+                restart = {
+                    from: {all: Snap}
+                    apply: {page3 = { image = { margin: {left: 800.0}}}}
+                }
+                show = {
+                    redraw: true,
+                    from: {all: Forward {duration: 0.5}}
+                    apply: {page3 = { image = { margin: {left: 0.0}}}}
                 }
             }
         }
@@ -103,18 +129,24 @@ impl Widget for Carrousel {
         }
 
         // Fire the "show" animation when the "restart" animation is done
+        if self.animator.animator_in_state(cx, id!(page1.restart)) {
+            self.animator_play(cx, id!(page1.show));
+        }
         if self.animator.animator_in_state(cx, id!(page2.restart)) {
             self.animator_play(cx, id!(page2.show));
+        }
+        if self.animator.animator_in_state(cx, id!(page3.restart)) {
+            self.animator_play(cx, id!(page3.show));
         }
 
         match event.hits(cx, self.view.area()) {
             Hit::FingerUp(fe) => if fe.is_over {
                 // Do not fire a new animation if the carrousel is already animating
-                if !self.animator.is_track_animating(cx, id!(page2)) {
+                if self.can_animate(cx) {
                     self.update_current_page();
                     self.reset_frames_visibility();
                     self.pages[self.current_page as usize].set_visible(true);
-                    self.animator_play(cx, id!(page2.restart));
+                    self.play_restart_animation(cx);
                     //self.redraw(cx);
                 }
             }
@@ -146,6 +178,21 @@ impl Carrousel {
             CarrouselPageOrder::Reverse => {
                 self.current_page = (self.current_page + self.pages.len() as u8 - 1) % self.pages.len() as u8;
             }
+        }
+    }
+
+    fn can_animate(&self, cx: &mut Cx) -> bool {
+        !self.animator.is_track_animating(cx, id!(page1)) &&
+            !self.animator.is_track_animating(cx, id!(page2)) &&
+            !self.animator.is_track_animating(cx, id!(page3))
+    }
+
+    fn play_restart_animation(&mut self, cx: &mut Cx) {
+        match self.current_page {
+            0 => self.animator_play(cx, id!(page1.restart)),
+            1 => self.animator_play(cx, id!(page2.restart)),
+            2 => self.animator_play(cx, id!(page3.restart)),
+            _ => ()
         }
     }
 }
