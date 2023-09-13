@@ -34,10 +34,20 @@ live_design! {
     }
 }
 
+#[derive(Live, LiveHook)]
+#[live_ignore]
+pub enum CarrouselPageOrder {
+    #[pick] Normal,
+    Reverse
+}
+
 #[derive(Live)]
 pub struct Carrousel {
     #[deref]
     view: View,
+
+    #[live]
+    page_order: CarrouselPageOrder,
 
     #[rust(0)]
     current_page: u8,
@@ -73,7 +83,7 @@ impl Widget for Carrousel {
     ) {
         match event.hits(cx, self.view.area()) {
             Hit::FingerUp(fe) => if fe.is_over {
-                self.current_page = (self.current_page + 1) % self.pages.len() as u8;
+                self.update_current_page();
                 self.reset_frames_visibility();
                 self.pages[self.current_page as usize].set_visible(true);
                 self.redraw(cx);
@@ -95,6 +105,17 @@ impl Carrousel {
     fn reset_frames_visibility(&mut self) {
         for page in &mut self.pages {
             page.set_visible(false);
+        }
+    }
+
+    fn update_current_page(&mut self) {
+        match self.page_order {
+            CarrouselPageOrder::Normal => {
+                self.current_page = (self.current_page + 1) % self.pages.len() as u8;
+            }
+            CarrouselPageOrder::Reverse => {
+                self.current_page = (self.current_page + self.pages.len() as u8 - 1) % self.pages.len() as u8;
+            }
         }
     }
 }
