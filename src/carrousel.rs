@@ -1,5 +1,7 @@
 use makepad_widgets::*;
 
+const CARROUSEL_MAX_OFFSET: f64 = 400.0;
+
 live_design! {
     import makepad_widgets::base::*;
     import makepad_widgets::theme_desktop_dark::*;
@@ -29,7 +31,7 @@ live_design! {
                 default: restart,
                 restart = {
                     from: {all: Snap}
-                    apply: {carrousel_page_offset: 800.0}
+                    apply: {carrousel_page_offset: 400.0}
                 }
                 show = {
                     redraw: true,
@@ -41,19 +43,9 @@ live_design! {
     }
 }
 
-#[derive(Live, LiveHook)]
-#[live_ignore]
-pub enum CarrouselPageOrder {
-    #[pick] Normal,
-    Reverse
-}
-
 #[derive(Live)]
 pub struct Carrousel {
     #[rust] area: Area,
-
-    #[live]
-    page_order: CarrouselPageOrder,
 
     #[live]
     images: Vec<LiveDependency>,
@@ -139,27 +131,27 @@ impl Carrousel {
     fn draw_walk(&mut self, cx: &mut Cx2d, walk: Walk) {
         cx.begin_turtle(walk, Layout::default());
 
-        let widget_id = LiveId::from_str(&format!("page{}", self.current_page));
+        self.draw_page_with_offset(cx, self.current_page, self.carrousel_page_offset, walk);
+
+        let prev_page_idx = (self.current_page + self.images.len() as u8 - 1) % self.images.len() as u8;
+        self.draw_page_with_offset(cx, prev_page_idx, self.carrousel_page_offset - CARROUSEL_MAX_OFFSET, walk);
+
+        cx.end_turtle_with_area(&mut self.area);
+    }
+
+    fn draw_page_with_offset(&mut self, cx: &mut Cx2d, index: u8, offset: f64, walk: Walk) {
+        let widget_id = LiveId::from_str(&format!("page{}", index));
         let page = self.pages.get_or_insert(cx, widget_id, |cx| {
             WidgetRef::new_from_ptr(cx, self.page_template)
         });
 
         let _ = page.draw_walk_widget(
             cx,
-            walk.with_margin_left(self.carrousel_page_offset)
+            walk.with_margin_left(offset)
         );
-
-        cx.end_turtle_with_area(&mut self.area);
     }
 
     fn update_current_page(&mut self) {
-        match self.page_order {
-            CarrouselPageOrder::Normal => {
-                self.current_page = (self.current_page + 1) % self.images.len() as u8;
-            }
-            CarrouselPageOrder::Reverse => {
-                self.current_page = (self.current_page + self.images.len() as u8 - 1) % self.images.len() as u8;
-            }
-        }
+        self.current_page = (self.current_page + 1) % self.images.len() as u8;
     }
 }
