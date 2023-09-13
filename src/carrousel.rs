@@ -7,6 +7,7 @@ live_design! {
     ImageContainer = <View> {
         width: Fit,
         height: Fit,
+        visible: false,
         image = <Image> {
             width: 400
             height: 266
@@ -37,11 +38,27 @@ live_design! {
 pub struct Carrousel {
     #[deref]
     view: View,
+
+    #[rust(0)]
+    current_page: u8,
+
+    #[rust]
+    pages: Vec<ViewRef>,
 }
 
 impl LiveHook for Carrousel {
     fn before_live_design(cx: &mut Cx) {
         register_widget!(cx, Carrousel);
+    }
+
+    fn after_new_from_doc(&mut self, _cx: &mut Cx) {
+        self.pages = vec![
+            self.view.view(id!(page1)),
+            self.view.view(id!(page2)),
+            self.view.view(id!(page3))
+        ];
+
+        self.pages[self.current_page as usize].set_visible(true);
     }
 }
 
