@@ -39,5 +39,7 @@ impl AppMain for App {
         if let Event::Draw(event) = event {
             return self.ui.draw_widget_all(&mut Cx2d::new(cx, event));
         }
+
+        let _actions = self.ui.handle_widget_event(cx, event);
     }
 }

@@ -63,11 +63,36 @@ impl LiveHook for Carrousel {
 }
 
 impl Widget for Carrousel {
+    fn handle_widget_event_with(
+        &mut self,
+        cx: &mut Cx,
+        event: &Event,
+        _dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
+    ) {
+        match event.hits(cx, self.view.area()) {
+            Hit::FingerUp(fe) => if fe.is_over {
+                self.current_page = (self.current_page + 1) % self.pages.len() as u8;
+                self.reset_frames_visibility();
+                self.pages[self.current_page as usize].set_visible(true);
+                self.redraw(cx);
+            }
+            _ => ()
+        };
+    }
+
     fn redraw(&mut self, cx: &mut Cx) {
         self.view.redraw(cx);
     }
 
     fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
         self.view.draw_walk_widget(cx, walk)
+    }
+}
+
+impl Carrousel {
+    fn reset_frames_visibility(&mut self) {
+        for page in &mut self.pages {
+            page.set_visible(false);
+        }
     }
 }
