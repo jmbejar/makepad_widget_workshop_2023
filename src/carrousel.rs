@@ -31,6 +31,21 @@ live_design! {
                 source: dep("crate://self/resources/image3.png")
             }
         }
+
+        animator: {
+            page2 = {
+                default: restart,
+                restart = {
+                    from: {all: Snap}
+                    apply: {page2 = { image = { margin: {left: 800.0}}}}
+                }
+                show = {
+                    redraw: true,
+                    from: {all: Forward {duration: 0.5}}
+                    apply: {page2 = { image = { margin: {left: 0.0}}}}
+                }
+            }
+        }
     }
 }
 
@@ -54,6 +69,9 @@ pub struct Carrousel {
 
     #[rust]
     pages: Vec<ViewRef>,
+
+    #[animator]
+    animator: Animator,
 }
 
 impl LiveHook for Carrousel {
@@ -81,12 +99,26 @@ impl Widget for Carrousel {
         event: &Event,
         _dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
     ) {
+        // Make sure we redraw when the animation is happening
+        if self.animator_handle_event(cx, event).must_redraw() {
+            self.redraw(cx);
+        }
+
+        // Fire the "show" animation when the "restart" animation is done
+        if self.animator.animator_in_state(cx, id!(page2.restart)) {
+            self.animator_play(cx, id!(page2.show));
+        }
+
         match event.hits(cx, self.view.area()) {
             Hit::FingerUp(fe) => if fe.is_over {
-                self.update_current_page();
-                self.reset_frames_visibility();
-                self.pages[self.current_page as usize].set_visible(true);
-                self.redraw(cx);
+                // Do not fire a new animation if the carrousel is already animating
+                if !self.animator.is_track_animating(cx, id!(page2)) {
+                    self.update_current_page();
+                    self.reset_frames_visibility();
+                    self.pages[self.current_page as usize].set_visible(true);
+                    self.animator_play(cx, id!(page2.restart));
+                    //self.redraw(cx);
+                }
             }
             _ => ()
         };
