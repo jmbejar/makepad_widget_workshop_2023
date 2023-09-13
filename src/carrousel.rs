@@ -4,23 +4,31 @@ live_design! {
     import makepad_widgets::base::*;
     import makepad_widgets::theme_desktop_dark::*;
 
+    ImageContainer = <View> {
+        width: Fit,
+        height: Fit,
+        image = <Image> {
+            width: 400
+            height: 266
+        }
+    }
+
     Carrousel = {{Carrousel}} {
         flow: Down,
-
-        image1 = <Image> {
-            width: 400
-            height: 266
-            source: dep("crate://self/resources/image1.png")
+        page1 = <ImageContainer> {
+            image = {
+                source: dep("crate://self/resources/image1.png")
+            }
         }
-        image2 = <Image> {
-            width: 400
-            height: 266
-            source: dep("crate://self/resources/image2.png")
+        page2 = <ImageContainer> {
+            image = {
+                source: dep("crate://self/resources/image2.png")
+            }
         }
-        image3 = <Image> {
-            width: 400
-            height: 266
-            source: dep("crate://self/resources/image3.png")
+        page3 = <ImageContainer> {
+            image = {
+                source: dep("crate://self/resources/image3.png")
+            }
         }
     }
 }
