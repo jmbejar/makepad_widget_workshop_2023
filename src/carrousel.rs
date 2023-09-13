@@ -16,6 +16,13 @@ live_design! {
 
     Carrousel = {{Carrousel}} {
         flow: Down,
+
+        pages: [
+            page1,
+            page2,
+            page3,
+        ]
+
         page1 = <ImageContainer> {
             image = {
                 source: dep("crate://self/resources/image1.png")
@@ -52,8 +59,8 @@ pub struct Carrousel {
     #[rust(0)]
     current_page: u8,
 
-    #[rust]
-    pages: Vec<ViewRef>,
+    #[live]
+    pages: Vec<LiveId>
 }
 
 impl LiveHook for Carrousel {
@@ -63,13 +70,8 @@ impl LiveHook for Carrousel {
 
     fn after_apply(&mut self, _cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
         if from.is_from_doc()  {
-            self.pages = vec![
-                self.view.view(id!(page1)),
-                self.view.view(id!(page2)),
-                self.view.view(id!(page3))
-            ];
-
-            self.pages[self.current_page as usize].set_visible(true);
+            let current_page_live_id = self.pages[self.current_page as usize];
+            self.view.view(&[current_page_live_id]).set_visible(true);
         }
     }
 }
@@ -85,7 +87,10 @@ impl Widget for Carrousel {
             Hit::FingerUp(fe) => if fe.is_over {
                 self.update_current_page();
                 self.reset_frames_visibility();
-                self.pages[self.current_page as usize].set_visible(true);
+
+                let current_page_live_id = self.pages[self.current_page as usize];
+                self.view.view(&[current_page_live_id]).set_visible(true);
+
                 self.redraw(cx);
             }
             _ => ()
@@ -103,8 +108,8 @@ impl Widget for Carrousel {
 
 impl Carrousel {
     fn reset_frames_visibility(&mut self) {
-        for page in &mut self.pages {
-            page.set_visible(false);
+        for page_id in &self.pages {
+            self.view.view(&[*page_id]).set_visible(false);
         }
     }
 
