@@ -1,4 +1,5 @@
 use makepad_widgets::*;
+use crate::carrousel::CarrouselAction;
 
 live_design! {
     import makepad_widgets::base::*;
@@ -11,8 +12,11 @@ live_design! {
             window: {position: vec2(0, 0), inner_size: vec2(400, 800)},
 
             body = {
+                flow: Down
+                spacing: 10
                 padding: {top: 100}
 
+                page_label = <Label> {text: "Hello World"}
                 <Carrousel> {}
             }
         }
@@ -40,6 +44,16 @@ impl AppMain for App {
             return self.ui.draw_widget_all(&mut Cx2d::new(cx, event));
         }
 
-        let _actions = self.ui.handle_widget_event(cx, event);
+        let actions = self.ui.handle_widget_event(cx, event);
+
+        for action in actions {
+            match action.action() {
+                CarrouselAction::PageChanged(id) => {
+                    println!("Page changed to {}", id);
+                    self.ui.label(id!(page_label)).set_text_and_redraw(cx, &format!("Page {}", id));
+                },
+                _ => (),
+            }
+        }
     }
 }

@@ -89,12 +89,40 @@ impl LiveHook for Carrousel {
     }
 }
 
+#[derive(Clone, WidgetAction)]
+pub enum CarrouselAction {
+    None,
+    PageChanged(u8),
+}
+
 impl Widget for Carrousel {
     fn handle_widget_event_with(
         &mut self,
         cx: &mut Cx,
         event: &Event,
-        _dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
+        dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
+    ) {
+        let uid = self.widget_uid();
+        self.handle_event_with(cx, event, &mut |cx, action| {
+            dispatch_action(cx, WidgetActionItem::new(action.into(), uid));
+        });
+    }
+
+    fn redraw(&mut self, cx: &mut Cx) {
+        self.view.redraw(cx);
+    }
+
+    fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
+        self.view.draw_walk_widget(cx, walk)
+    }
+}
+
+impl Carrousel {
+    fn handle_event_with(
+        &mut self,
+        cx: &mut Cx,
+        event: &Event,
+        dispatch_action: &mut dyn FnMut(&mut Cx, CarrouselAction),
     ) {
         // Make sure we redraw when the animation is happening
         if self.animator_handle_event(cx, event).must_redraw() {
@@ -112,22 +140,14 @@ impl Widget for Carrousel {
                 // Do not fire a new animation if the carrousel is already animating
                 if self.can_animate(cx) {
                     self.play_animation(cx);
+
+                    dispatch_action(cx, CarrouselAction::PageChanged(self.current_page))
                 }
             }
             _ => ()
         };
     }
 
-    fn redraw(&mut self, cx: &mut Cx) {
-        self.view.redraw(cx);
-    }
-
-    fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
-        self.view.draw_walk_widget(cx, walk)
-    }
-}
-
-impl Carrousel {
     fn reset_frames_visibility(&mut self) {
         for page in &mut self.pages {
             page.set_visible(false);
@@ -147,7 +167,10 @@ impl Carrousel {
         self.reset_frames_visibility();
 
         self.animator_play(cx, id!(page.restart));
-        self.pages[self.current_page as usize].set_visible(true);
+
+        let next_page = &self.pages[self.current_page as usize];
+        next_page.apply_over(cx, live!{ image = { margin: {left: (-400.0)} } });
+        next_page.set_visible(true);
 
         let prev_page = (self.current_page + self.pages.len() as u8 - 1) % self.pages.len() as u8;
         self.pages[prev_page as usize].set_visible(true);
