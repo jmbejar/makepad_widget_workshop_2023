@@ -51,14 +51,16 @@ impl LiveHook for Carrousel {
         register_widget!(cx, Carrousel);
     }
 
-    fn after_new_from_doc(&mut self, _cx: &mut Cx) {
-        self.pages = vec![
-            self.view.view(id!(page1)),
-            self.view.view(id!(page2)),
-            self.view.view(id!(page3))
-        ];
+    fn after_apply(&mut self, _cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
+        if from.is_from_doc()  {
+            self.pages = vec![
+                self.view.view(id!(page1)),
+                self.view.view(id!(page2)),
+                self.view.view(id!(page3))
+            ];
 
-        self.pages[self.current_page as usize].set_visible(true);
+            self.pages[self.current_page as usize].set_visible(true);
+        }
     }
 }
 
