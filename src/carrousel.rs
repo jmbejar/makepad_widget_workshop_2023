@@ -34,59 +34,19 @@ live_design! {
             }
         }
 
+        page_animation_offset: 400.0
+
         animator: {
-            page1 = {
+            page = {
                 default: show,
                 restart = {
                     from: {all: Snap}
-                    apply: {page1 = { image = { margin: {left: 400.0}}}}
+                    apply: {page_animation_offset: 400.0}
                 }
                 show = {
                     redraw: true,
                     from: {all: Forward {duration: 0.5}}
-                    apply: {page1 = { image = { margin: {left: 0.0}}}}
-                }
-                // Added a new animation to hide the page
-                hide = {
-                    redraw: true,
-                    from: {all: Forward {duration: 0.5}}
-                    apply: {page1 = { image = { margin: {left: -400.0}}}}
-                }
-            }
-
-            page2 = {
-                default: hide,
-                restart = {
-                    from: {all: Snap}
-                    apply: {page2 = { image = { margin: {left: 400.0}}}}
-                }
-                show = {
-                    redraw: true,
-                    from: {all: Forward {duration: 0.5}}
-                    apply: {page2 = { image = { margin: {left: 0.0}}}}
-                }
-                hide = {
-                    redraw: true,
-                    from: {all: Forward {duration: 0.5}}
-                    apply: {page2 = { image = { margin: {left: -400.0}}}}
-                }
-            }
-
-            page3 = {
-                default: hide,
-                restart = {
-                    from: {all: Snap}
-                    apply: {page3 = { image = { margin: {left: 400.0}}}}
-                }
-                show = {
-                    redraw: true,
-                    from: {all: Forward {duration: 0.5}}
-                    apply: {page3 = { image = { margin: {left: 0.0}}}}
-                }
-                hide = {
-                    redraw: true,
-                    from: {all: Forward {duration: 0.5}}
-                    apply: {page3 = { image = { margin: {left: -400.0}}}}
+                    apply: {page_animation_offset: 0.0}
                 }
             }
         }
@@ -103,6 +63,9 @@ pub struct Carrousel {
 
     #[rust]
     pages: Vec<ViewRef>,
+
+    #[live]
+    page_animation_offset: f64,
 
     #[animator]
     animator: Animator,
@@ -135,18 +98,13 @@ impl Widget for Carrousel {
     ) {
         // Make sure we redraw when the animation is happening
         if self.animator_handle_event(cx, event).must_redraw() {
+            self.update_image_positions(cx);
             self.redraw(cx);
         }
 
         // Fire the "show" animation when the "restart" animation is done
-        if self.animator.animator_in_state(cx, id!(page1.restart)) {
-            self.animator_play(cx, id!(page1.show));
-        }
-        if self.animator.animator_in_state(cx, id!(page2.restart)) {
-            self.animator_play(cx, id!(page2.show));
-        }
-        if self.animator.animator_in_state(cx, id!(page3.restart)) {
-            self.animator_play(cx, id!(page3.show));
+        if self.animator.animator_in_state(cx, id!(page.restart)) {
+            self.animator_play(cx, id!(page.show));
         }
 
         match event.hits(cx, self.view.area()) {
@@ -181,30 +139,26 @@ impl Carrousel {
     }
 
     fn can_animate(&self, cx: &mut Cx) -> bool {
-        !self.animator.is_track_animating(cx, id!(page1)) &&
-            !self.animator.is_track_animating(cx, id!(page2)) &&
-            !self.animator.is_track_animating(cx, id!(page3))
+        !self.animator.is_track_animating(cx, id!(page))
     }
 
     fn play_animation(&mut self, cx: &mut Cx) {
         self.update_current_page();
         self.reset_frames_visibility();
 
-        match self.current_page {
-            0 => self.animator_play(cx, id!(page1.restart)),
-            1 => self.animator_play(cx, id!(page2.restart)),
-            2 => self.animator_play(cx, id!(page3.restart)),
-            _ => ()
-        }
+        self.animator_play(cx, id!(page.restart));
         self.pages[self.current_page as usize].set_visible(true);
 
         let prev_page = (self.current_page + self.pages.len() as u8 - 1) % self.pages.len() as u8;
-        match prev_page {
-            0 => self.animator_play(cx, id!(page1.hide)),
-            1 => self.animator_play(cx, id!(page2.hide)),
-            2 => self.animator_play(cx, id!(page3.hide)),
-            _ => ()
-        }
         self.pages[prev_page as usize].set_visible(true);
+    }
+
+    fn update_image_positions(&mut self, cx: &mut Cx) {
+        self.pages[self.current_page as usize]
+            .apply_over(cx, live!{ image = { margin: {left: (self.page_animation_offset)} } });
+
+        let prev_page = (self.current_page + self.pages.len() as u8 - 1) % self.pages.len() as u8;
+        self.pages[prev_page as usize]
+            .apply_over(cx, live!{ image = { margin: {left: (self.page_animation_offset - 400.0)} } });
     }
 }
