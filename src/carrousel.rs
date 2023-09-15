@@ -185,3 +185,18 @@ impl Carrousel {
             .apply_over(cx, live!{ image = { margin: {left: (self.page_animation_offset - 400.0)} } });
     }
 }
+
+#[derive(Clone, WidgetRef)]
+pub struct CarrouselRef(WidgetRef);
+
+impl CarrouselRef {
+    pub fn page_changed(&self, actions: Vec<WidgetActionItem>) -> Option<u8> {
+        if let Some(item) = actions.find_single_action(self.widget_uid()) {
+            if let CarrouselAction::PageChanged(id) = item.action() {
+                return Some(id);
+            }
+        }
+
+        None
+    }
+}
