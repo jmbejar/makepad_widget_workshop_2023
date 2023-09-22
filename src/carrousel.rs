@@ -48,6 +48,10 @@ live_design! {
                     from: {all: Forward {duration: 0.5}}
                     apply: {page_animation_offset: 0.0}
                 }
+                cancel = {
+                    from: {all: Snap}
+                    apply: {page_animation_offset: 0.0}
+                }
             }
         }
     }
@@ -182,6 +186,19 @@ impl Carrousel {
         self.pages[prev_page as usize].set_visible(true);
     }
 
+    fn set_current_page(&mut self, cx: &mut Cx, page: u8) {
+        self.current_page = page;
+        self.reset_frames_visibility();
+
+        self.animator_play(cx, id!(page.cancel));
+
+        let next_page = &self.pages[self.current_page as usize];
+        next_page.apply_over(cx, live!{ image = { margin: {left: (0.0)} } });
+        next_page.set_visible(true);
+
+        self.waiting_since = None;
+    }
+
     fn update_image_positions(&mut self, cx: &mut Cx) {
         self.pages[self.current_page as usize]
             .apply_over(cx, live!{ image = { margin: {left: (self.page_animation_offset)} } });
@@ -231,7 +248,7 @@ impl Carrousel {
 pub struct CarrouselRef(WidgetRef);
 
 impl CarrouselRef {
-    pub fn page_changed(&self, actions: Vec<WidgetActionItem>) -> Option<u8> {
+    pub fn page_changed(&self, actions: &Vec<WidgetActionItem>) -> Option<u8> {
         if let Some(item) = actions.find_single_action(self.widget_uid()) {
             if let CarrouselAction::PageChanged(id) = item.action() {
                 return Some(id);
@@ -239,5 +256,12 @@ impl CarrouselRef {
         }
 
         None
+    }
+
+    pub fn set_current_page(&self, cx: &mut Cx, page: u8) {
+        if let Some(inner) = self.0.borrow_mut::<Carrousel>().as_mut() {
+            inner.set_current_page(cx, page);
+            inner.redraw(cx);
+        }
     }
 }
