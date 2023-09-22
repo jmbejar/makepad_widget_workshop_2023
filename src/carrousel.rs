@@ -4,22 +4,46 @@ live_design! {
     import makepad_widgets::base::*;
     import makepad_widgets::theme_desktop_dark::*;
 
-    Carrousel = <View> {
-        flow: Down
-        <Image> {
-            width: 400
-            height: 266
-            source: dep("crate://self/resources/image1.png")
+    Carrousel = {{Carrousel}} {
+        view: <View> {
+            flow: Down
+            <Image> {
+                width: 400
+                height: 266
+                source: dep("crate://self/resources/image1.png")
+            }
+            <Image> {
+                width: 400
+                height: 266
+                source: dep("crate://self/resources/image2.png")
+            }
+            <Image> {
+                width: 400
+                height: 266
+                source: dep("crate://self/resources/image3.png")
+            }
         }
-        <Image> {
-            width: 400
-            height: 266
-            source: dep("crate://self/resources/image2.png")
-        }
-        <Image> {
-            width: 400
-            height: 266
-            source: dep("crate://self/resources/image3.png")
-        }
+    }
+}
+
+#[derive(Live)]
+pub struct Carrousel {
+    #[live]
+    view: View,
+}
+
+impl LiveHook for Carrousel {
+    fn before_live_design(cx: &mut Cx) {
+        register_widget!(cx, Carrousel);
+    }
+}
+
+impl Widget for Carrousel {
+    fn redraw(&mut self, cx: &mut Cx) {
+        self.view.redraw(cx);
+    }
+
+    fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
+        self.view.draw_walk_widget(cx, walk)
     }
 }
