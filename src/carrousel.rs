@@ -69,6 +69,12 @@ pub struct Carrousel {
 
     #[animator]
     animator: Animator,
+
+    #[rust]
+    next_frame: NextFrame,
+
+    #[rust(None)]
+    waiting_since: Option<f64>,
 }
 
 impl LiveHook for Carrousel {
@@ -76,7 +82,7 @@ impl LiveHook for Carrousel {
         register_widget!(cx, Carrousel);
     }
 
-    fn after_apply(&mut self, _cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
+    fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
         if from.is_from_doc()  {
             self.pages = vec![
                 self.view.view(id!(page1)),
@@ -85,6 +91,8 @@ impl LiveHook for Carrousel {
             ];
 
             self.pages[self.current_page as usize].set_visible(true);
+
+            self.next_frame = cx.new_next_frame();
         }
     }
 }
@@ -130,15 +138,13 @@ impl Carrousel {
             self.redraw(cx);
         }
 
-        // Fire the "show" animation when the "restart" animation is done
-        if self.animator.animator_in_state(cx, id!(page.restart)) {
-            self.animator_play(cx, id!(page.show));
-        }
+        self.orchestrate_animations(cx, event, dispatch_action);
 
         match event.hits(cx, self.view.area()) {
             Hit::FingerUp(fe) => if fe.is_over {
                 // Do not fire a new animation if the carrousel is already animating
                 if self.can_animate(cx) {
+                    self.waiting_since = None;
                     self.play_animation(cx);
 
                     dispatch_action(cx, CarrouselAction::PageChanged(self.current_page))
@@ -183,6 +189,41 @@ impl Carrousel {
         let prev_page = (self.current_page + self.pages.len() as u8 - 1) % self.pages.len() as u8;
         self.pages[prev_page as usize]
             .apply_over(cx, live!{ image = { margin: {left: (self.page_animation_offset - 400.0)} } });
+    }
+
+    fn orchestrate_animations(
+        &mut self,
+        cx: &mut Cx,
+        event: &Event,
+        dispatch_action: &mut dyn FnMut(&mut Cx, CarrouselAction)
+    ){
+        // Decide what to do when no animation is happening
+        if self.can_animate(cx) {
+
+            // Fire the "show" animation when the "restart" animation is done
+            if self.animator.animator_in_state(cx, id!(page.restart)) {
+                self.animator_play(cx, id!(page.show));
+            }
+
+            // Fire the "restart" animation automatically after some seconds idle
+            if let Some(ne) = self.next_frame.is_event(event) {
+                match self.waiting_since {
+                    None => {
+                        self.waiting_since = Some(ne.time);
+                    }
+                    Some(time) => {
+                        if ne.time - time > 3.0 {
+                            self.waiting_since = None;
+                            self.play_animation(cx);
+
+                            dispatch_action(cx, CarrouselAction::PageChanged(self.current_page))
+                        }
+                    }
+                }
+            }
+        }
+
+        self.next_frame = cx.new_next_frame();
     }
 }
 
